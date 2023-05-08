@@ -4,6 +4,7 @@
 #include <raylib.h>
 #include <stdlib.h>
 #include "vector2int.h"
+#include "data.h"
 
 typedef struct {
   Rectangle source;
@@ -38,6 +39,13 @@ static void HandleSpriteInput(Sprite *sprite, double dx, double dy) {
   if (IsKeyDown(KEY_S)) MoveSprite(sprite, 0, dy);
   if (IsKeyDown(KEY_A)) MoveSprite(sprite, -dx, 0);
   if (IsKeyDown(KEY_D)) MoveSprite(sprite, dx, 0);
+}
+
+static void FollowSprite(Sprite sprite, Camera2D *camera, Data data) {
+  camera->target.x = sprite.source.x;
+  camera->target.x = sprite.source.y;
+  camera->offset.x = sprite.source.x + 1;
+  camera->offset.y = sprite.source.y + 1;
 }
 
 #endif

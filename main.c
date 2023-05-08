@@ -25,7 +25,8 @@ int main() {
 
     // update here
     HandleSpriteInput(&sprite, 1, 1);
-    
+    FollowSprite(sprite, &camera, data);
+
     BeginDrawing();
     ClearBackground(RAYWHITE);
     BeginMode2D(camera);
