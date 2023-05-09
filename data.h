@@ -1,10 +1,12 @@
 #ifndef DATA_H
 #define DATA_H
 
-#include "vector2int.h"
+#include <raylib.h>
 
 typedef struct {
-  Vector2Int screen; 
+  Vector2 screen; 
+  double zoom;
+  Vector2 map;
 } Data;
 
 #endif
