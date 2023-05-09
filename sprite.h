@@ -55,7 +55,38 @@ static void Accelerate(Sprite *sprite, Vector2 direction) {
     sprite->velocity.y = maxVelocity.y * direction.y;
 }
 
-static void MoveSprite(Sprite *sprite, Vector2 delta) {
+static void CollisionCheck(Sprite *sprite, Rectangle collisionObject[],
+                           int collisionObjectLength, Vector2 *delta) {
+  for (int i = 0; i < collisionObjectLength; i++) {
+    // collision object bounds
+    const double collisionObjectLeft = collisionObject[i].x;
+    const double collisionObjectRight =
+        collisionObject[i].x + collisionObject[i].width;
+    const double collisionObjectTop = collisionObject[i].y;
+    const double collisionObjectBottom =
+        collisionObject[i].y + collisionObject[i].height;
+
+    // sprite bounds
+    const double spriteLeft = sprite->source.x;
+    const double spriteRight = sprite->source.x + sprite->source.width;
+    const double spriteTop = sprite->source.y;
+    const double spriteBottom = sprite->source.y + sprite->source.height;
+
+    if (spriteBottom > collisionObjectTop && spriteTop < collisionObjectBottom) {
+      if (spriteRight + delta->x > collisionObjectLeft &&
+          spriteLeft + delta->x < collisionObjectRight) {
+        if (spriteLeft < collisionObjectRight) {
+        }
+          
+        printf("collision on object %d\n", i);
+      }
+    }
+  }
+}
+
+static void MoveSprite(Sprite *sprite, Vector2 delta,
+                       Rectangle collisionObject[], int collisionObjectLength) {
+  CollisionCheck(sprite, collisionObject, collisionObjectLength, &delta);
   SetSpritePosition(sprite, (Vector2){sprite->source.x + delta.x,
                                       sprite->source.y + delta.y});
 }
@@ -128,26 +159,10 @@ static void FollowSprite(Sprite sprite, Camera2D *camera, double zoom,
     camera->target.y = map.y - camera->offset.y / zoom - sprite.source.height;
 }
 
-static void CollisionCheck(Sprite *sprite, Rectangle collisionObjects[],
-                           int collisionObjectsLength) {
-  for (int i = 0; i < collisionObjectsLength; i++) {
-    // y direction check from above
-    if (sprite->source.y + sprite->source.height > collisionObjects[i].y &&
-        sprite->source.y + sprite->source.height <
-            collisionObjects[i].y + collisionObjects[i].height)
-      sprite->source.y = collisionObjects[i].y - sprite->source.height;
-    // y direction check from below
-    if (sprite->source.y < collisionObjects[i].y + collisionObjects[i].height &&
-        sprite->source.y + sprite->source.height > collisionObjects[i].y)
-      sprite->source.y = collisionObjects[i].y + collisionObjects[i].height;
-  }
-}
-
 static void UpdatePlayerSprite(Sprite *sprite, Rectangle collisionObject[],
                                int collisionObjectLength) {
   HandleSpriteInput(sprite);
-  MoveSprite(sprite, sprite->velocity);
-  CollisionCheck(sprite, collisionObject, collisionObjectLength);
+  MoveSprite(sprite, sprite->velocity, collisionObject, collisionObjectLength);
 }
 
 #endif

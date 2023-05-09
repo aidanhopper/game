@@ -15,7 +15,7 @@ int main() {
   SetTargetFPS(60);
 
   Rectangle rec;
-  rec.x = 0;
+  rec.x = 60;
   rec.y = 0;
   rec.width = 10;
   rec.height = 10;
