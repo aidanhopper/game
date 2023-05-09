@@ -23,16 +23,21 @@ int main() {
 
   camera.target = (Vector2) {sprite.source.x, sprite.source.y};
 
-  Rectangle ground;
-  ground.x = 0;
-  ground.y = 30;
-  ground.height = 1;
-  ground.width = data.map.x;
+  data.collisionObject[0].x = 0;
+  data.collisionObject[0].y = 30;
+  data.collisionObject[0].height = 20;
+  data.collisionObject[0].width = data.map.x;
+
+  data.collisionObject[1].x = 40;
+  data.collisionObject[1].y = 10;
+  data.collisionObject[1].height = 20;
+  data.collisionObject[1].width = 20;
+  data.collisionObjectLength = 2;
 
   while (!WindowShouldClose()) {
 
     // update here
-    UpdatePlayerSprite(&sprite);
+    UpdatePlayerSprite(&sprite, data.collisionObject, data.collisionObjectLength);
     FollowSprite(sprite, &camera, data.zoom, data.screen, data.map, 0.1);
 
     BeginDrawing();
@@ -43,7 +48,8 @@ int main() {
     DrawText("HELLO WORLD!", 10, 10, 20, LIGHTGRAY);
 
     DrawSprite(sprite);
-    DrawRectangleRec(ground, BLACK);
+    DrawRectangleRec(data.collisionObject[0], BLACK);
+    DrawRectangleRec(data.collisionObject[1], BLACK);
 
 
     EndDrawing();

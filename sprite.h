@@ -3,9 +3,8 @@
 
 #include "math.h"
 #include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <raylib.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 typedef struct {
@@ -17,13 +16,14 @@ typedef struct {
   Vector2 deceleration;
 } Sprite;
 
-static Sprite CreateSprite(Rectangle source,
-                           Vector2 maxVelocity, Vector2 acceleration, Vector2 deceleration, Texture2D *texture) {
+static Sprite CreateSprite(Rectangle source, Vector2 maxVelocity,
+                           Vector2 acceleration, Vector2 deceleration,
+                           Texture2D *texture) {
   Sprite sprite;
   sprite.texture = texture;
   sprite.source = source;
   sprite.maxVelocity = maxVelocity;
-  sprite.velocity = (Vector2) {0, 0};
+  sprite.velocity = (Vector2){0, 0};
   sprite.acceleration = acceleration;
   sprite.deceleration = deceleration;
   return sprite;
@@ -56,7 +56,8 @@ static void Accelerate(Sprite *sprite, Vector2 direction) {
 }
 
 static void MoveSprite(Sprite *sprite, Vector2 delta) {
-  SetSpritePosition(sprite, (Vector2) {sprite->source.x + delta.x, sprite->source.y + delta.y});
+  SetSpritePosition(sprite, (Vector2){sprite->source.x + delta.x,
+                                      sprite->source.y + delta.y});
 }
 
 static void Decelerate(Sprite *sprite, Vector2 axis) {
@@ -64,31 +65,33 @@ static void Decelerate(Sprite *sprite, Vector2 axis) {
     sprite->velocity.x -= sprite->deceleration.x * axis.x;
   else if (sprite->velocity.x <= -sprite->deceleration.x)
     sprite->velocity.x += sprite->deceleration.x * axis.x;
-  else sprite->velocity.x = 0;
+  else
+    sprite->velocity.x = 0;
 
   if (sprite->velocity.y >= sprite->deceleration.y)
     sprite->velocity.y -= sprite->deceleration.y * axis.y;
   else if (sprite->velocity.y <= -sprite->deceleration.y)
     sprite->velocity.y += sprite->deceleration.y * axis.y;
-  else sprite->velocity.y = 0;
+  else
+    sprite->velocity.y = 0;
 }
 
 static void HandleSpriteInput(Sprite *sprite) {
   Vector2 noInput = {1, 1};
   if (IsKeyDown(KEY_W)) {
-    Accelerate(sprite, (Vector2) {0, -1});
+    Accelerate(sprite, (Vector2){0, -1});
     noInput.y = 0;
   }
   if (IsKeyDown(KEY_S)) {
-    Accelerate(sprite, (Vector2) {0, 1});
+    Accelerate(sprite, (Vector2){0, 1});
     noInput.y = 0;
   }
   if (IsKeyDown(KEY_A)) {
-    Accelerate(sprite, (Vector2) {-1, 0});
+    Accelerate(sprite, (Vector2){-1, 0});
     noInput.x = 0;
   }
   if (IsKeyDown(KEY_D)) {
-    Accelerate(sprite, (Vector2) {1, 0});
+    Accelerate(sprite, (Vector2){1, 0});
     noInput.x = 0;
   }
   Decelerate(sprite, noInput);
@@ -96,7 +99,8 @@ static void HandleSpriteInput(Sprite *sprite) {
 
 static void FollowSprite(Sprite sprite, Camera2D *camera, double zoom,
                          Vector2 screen, Vector2 map, double cameraSpeed) {
-  if (cameraSpeed > 1) cameraSpeed = 1;
+  if (cameraSpeed > 1)
+    cameraSpeed = 1;
 
   // set offset
   camera->offset = (Vector2){
@@ -110,23 +114,40 @@ static void FollowSprite(Sprite sprite, Camera2D *camera, double zoom,
   // handle x axis
   if (camera->target.x != target.x)
     camera->target.x -= (camera->target.x - target.x) * cameraSpeed;
-  if (camera->target.x < camera->offset.x/zoom)
-    camera->target.x = camera->offset.x/zoom;
-  if (camera->target.x > map.x - camera->offset.x/zoom - sprite.source.width)
-    camera->target.x = map.x - camera->offset.x/zoom - sprite.source.width;
+  if (camera->target.x < camera->offset.x / zoom)
+    camera->target.x = camera->offset.x / zoom;
+  if (camera->target.x > map.x - camera->offset.x / zoom - sprite.source.width)
+    camera->target.x = map.x - camera->offset.x / zoom - sprite.source.width;
 
   // handle y axis
   if (camera->target.y != target.y)
     camera->target.y -= (camera->target.y - target.y) * cameraSpeed;
-  if (camera->target.y < camera->offset.y/zoom)
-    camera->target.y = camera->offset.y/zoom;
-  if (camera->target.y > map.y - camera->offset.y/zoom - sprite.source.height)
-    camera->target.y = map.y - camera->offset.y/zoom - sprite.source.height;
+  if (camera->target.y < camera->offset.y / zoom)
+    camera->target.y = camera->offset.y / zoom;
+  if (camera->target.y > map.y - camera->offset.y / zoom - sprite.source.height)
+    camera->target.y = map.y - camera->offset.y / zoom - sprite.source.height;
 }
 
-static void UpdatePlayerSprite(Sprite *sprite) {
+static void CollisionCheck(Sprite *sprite, Rectangle collisionObjects[],
+                           int collisionObjectsLength) {
+  for (int i = 0; i < collisionObjectsLength; i++) {
+    // y direction check from above
+    if (sprite->source.y + sprite->source.height > collisionObjects[i].y &&
+        sprite->source.y + sprite->source.height <
+            collisionObjects[i].y + collisionObjects[i].height)
+      sprite->source.y = collisionObjects[i].y - sprite->source.height;
+    // y direction check from below
+    if (sprite->source.y < collisionObjects[i].y + collisionObjects[i].height &&
+        sprite->source.y + sprite->source.height > collisionObjects[i].y)
+      sprite->source.y = collisionObjects[i].y + collisionObjects[i].height;
+  }
+}
+
+static void UpdatePlayerSprite(Sprite *sprite, Rectangle collisionObject[],
+                               int collisionObjectLength) {
   HandleSpriteInput(sprite);
   MoveSprite(sprite, sprite->velocity);
+  CollisionCheck(sprite, collisionObject, collisionObjectLength);
 }
 
 #endif

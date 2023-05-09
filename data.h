@@ -7,6 +7,8 @@ typedef struct {
   Vector2 screen; 
   double zoom;
   Vector2 map;
+  Rectangle collisionObject[100];
+  int collisionObjectLength;
 } Data;
 
 #endif
