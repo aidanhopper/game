@@ -36,11 +36,6 @@ static void DrawSprite(Sprite sprite) {
     DrawTextureRec(*sprite.texture, sprite.source, (Vector2){0, 0}, RAYWHITE);
 }
 
-static void SetSpritePosition(Sprite *sprite, Vector2 position) {
-  sprite->source.x = position.x;
-  sprite->source.y = position.y;
-}
-
 static void Accelerate(Sprite *sprite, Vector2 direction) {
   Vector2 maxVelocity = sprite->maxVelocity;
   Vector2 acceleration = sprite->acceleration;
@@ -55,40 +50,29 @@ static void Accelerate(Sprite *sprite, Vector2 direction) {
     sprite->velocity.y = maxVelocity.y * direction.y;
 }
 
-static void CollisionCheck(Sprite *sprite, Rectangle collisionObject[],
-                           int collisionObjectLength, Vector2 *delta) {
+static void MoveSprite(Sprite *sprite, Rectangle collisionObject[],
+                       int collisionObjectLength) {
+  // first move x axis
+  sprite->source.x += sprite->velocity.x;
   for (int i = 0; i < collisionObjectLength; i++) {
-    // collision object bounds
-    const double collisionObjectLeft = collisionObject[i].x;
-    const double collisionObjectRight =
-        collisionObject[i].x + collisionObject[i].width;
-    const double collisionObjectTop = collisionObject[i].y;
-    const double collisionObjectBottom =
-        collisionObject[i].y + collisionObject[i].height;
-
-    // sprite bounds
-    const double spriteLeft = sprite->source.x;
-    const double spriteRight = sprite->source.x + sprite->source.width;
-    const double spriteTop = sprite->source.y;
-    const double spriteBottom = sprite->source.y + sprite->source.height;
-
-    if (spriteBottom > collisionObjectTop && spriteTop < collisionObjectBottom) {
-      if (spriteRight + delta->x > collisionObjectLeft &&
-          spriteLeft + delta->x < collisionObjectRight) {
-        if (spriteLeft < collisionObjectRight) {
-        }
-          
-        printf("collision on object %d\n", i);
-      }
+    if (CheckCollisionRecs(collisionObject[i], sprite->source)) {
+      if (sprite->velocity.x > 0)
+        sprite->source.x = collisionObject[i].x - sprite->source.width;
+      else if (sprite->velocity.x < 0)
+        sprite->source.x = collisionObject[i].x + collisionObject[i].width;
     }
   }
-}
 
-static void MoveSprite(Sprite *sprite, Vector2 delta,
-                       Rectangle collisionObject[], int collisionObjectLength) {
-  CollisionCheck(sprite, collisionObject, collisionObjectLength, &delta);
-  SetSpritePosition(sprite, (Vector2){sprite->source.x + delta.x,
-                                      sprite->source.y + delta.y});
+  // then y axis
+  sprite->source.y += sprite->velocity.y;
+  for (int i = 0; i < collisionObjectLength; i++) {
+    if (CheckCollisionRecs(collisionObject[i], sprite->source)) {
+      if (sprite->velocity.y > 0)
+        sprite->source.y = collisionObject[i].y - sprite->source.height;
+      else if (sprite->velocity.y < 0)
+        sprite->source.y = collisionObject[i].y + collisionObject[i].height;
+    }
+  }
 }
 
 static void Decelerate(Sprite *sprite, Vector2 axis) {
@@ -162,7 +146,7 @@ static void FollowSprite(Sprite sprite, Camera2D *camera, double zoom,
 static void UpdatePlayerSprite(Sprite *sprite, Rectangle collisionObject[],
                                int collisionObjectLength) {
   HandleSpriteInput(sprite);
-  MoveSprite(sprite, sprite->velocity, collisionObject, collisionObjectLength);
+  MoveSprite(sprite, collisionObject, collisionObjectLength);
 }
 
 #endif

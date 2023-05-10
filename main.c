@@ -19,7 +19,7 @@ int main() {
   rec.y = 0;
   rec.width = 10;
   rec.height = 10;
-  Sprite sprite = CreateSprite(rec, (Vector2) {1, 1}, (Vector2) {0.5, 0.5}, (Vector2) {0.5, 0.5}, NULL);
+  Sprite sprite = CreateSprite(rec, (Vector2) {2, 2}, (Vector2) {0.5, 0.5}, (Vector2) {0.5, 0.5}, NULL);
 
   camera.target = (Vector2) {sprite.source.x, sprite.source.y};
 
