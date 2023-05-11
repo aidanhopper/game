@@ -52,6 +52,8 @@ int main() {
   bg.g = 39;
   bg.b = 68;
 
+  Texture2D bg0 = LoadTexture("./images/bg0.png");
+
   int state = 0;
 
   while (!WindowShouldClose()) {
