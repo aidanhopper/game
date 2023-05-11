@@ -77,20 +77,27 @@ static void Accelerate(Sprite *sprite, Vector2 direction) {
     sprite->velocity.y = maxVelocity.y * direction.y;
 }
 
+static double Dash(Sprite *sprite) {
+  sprite->state = DASHING;
+  sprite->velocity.y = 0;
+  if (sprite->facingRight)
+    sprite->velocity.x = sprite->dash_speed;
+  else
+    sprite->velocity.x = -sprite->dash_speed;
+  if (sprite->collisionType[0] || sprite->collisionType[1])
+    sprite->state = MOVING;
+  return GetTime();
+}
+
 // TODO: need to get collisions with collision rectangle working
 static void MoveSprite(Sprite *sprite, Rectangle collisionObject[],
                        int collisionObjectLength) {
 
   // handle state here
-  if (sprite->state == DASHING) {
-    sprite->velocity.y = 0;
-    if (sprite->collisionType[0] || sprite->collisionType[1]) {
-      sprite->state = MOVING;
-    }
-  }
+  //printf("STATE: %d\n", sprite->state);
 
-  if (sprite->velocity.x <= sprite->maxVelocity.x)
-    sprite->state = MOVING;
+  if (sprite->state == MOVING && sprite->velocity.x > sprite->maxVelocity.x)
+    sprite->velocity.x = sprite->maxVelocity.x;
 
   // handle collisions here
   for (int i = 0; i < 4; i++)
@@ -144,8 +151,6 @@ static void MoveSprite(Sprite *sprite, Rectangle collisionObject[],
       }
     }
   }
-
-  // reset velocity if hitting a wall
 }
 
 static void Decelerate(Sprite *sprite, Vector2 axis) {
@@ -168,14 +173,6 @@ static void Decelerate(Sprite *sprite, Vector2 axis) {
 
 static void Jump(Sprite *sprite) { sprite->velocity.y = -sprite->jump_speed; }
 
-static double Dash(Sprite *sprite) {
-  if (sprite->facingRight)
-    sprite->velocity.x = sprite->dash_speed;
-  else
-    sprite->velocity.x = -sprite->dash_speed;
-
-  return GetTime();
-}
 
 static void HandleSpriteInput(Sprite *sprite) {
   Vector2 noInput = {1, 1};
@@ -207,9 +204,9 @@ static void HandleSpriteInput(Sprite *sprite) {
   if (IsKeyDown(KEY_S)) {
   }
   // dash
-  if (IsKeyDown(KEY_LEFT_SHIFT) && timeSinceLastDash >= 1 && sprite->state != DASHING) {
+  if (IsKeyDown(KEY_LEFT_SHIFT) && timeSinceLastDash >= 2 && sprite->state != DASHING) {
     *lastDashTime = Dash(sprite);
-    sprite->state = DASHING;
+    timeSinceLastDash = GetTime() - *lastDashTime;
   }
   // move left
   if (IsKeyDown(KEY_A)) {
@@ -221,10 +218,22 @@ static void HandleSpriteInput(Sprite *sprite) {
     Accelerate(sprite, (Vector2){1, 0});
     noInput.x = 0;
   }
+
   Decelerate(sprite, noInput);
   Accelerate(sprite, (Vector2){0, 1});
-  if (sprite->state != DASHING && sprite->velocity.x > sprite->maxVelocity.x)
-    sprite->velocity.x = sprite->maxVelocity.x;
+
+  if (sprite->state == DASHING && timeSinceLastDash > 0.1) {
+    if (sprite->facingRight)
+      sprite->velocity.x = sprite->maxVelocity.x;
+    else
+      sprite->velocity.x = -sprite->maxVelocity.x;
+    sprite->state = MOVING;
+  }
+  else if (sprite->state == DASHING) {
+    Dash(sprite);
+  }
+  
+
 }
 
 static void FollowSprite(Sprite sprite, Camera2D *camera, double zoom,
