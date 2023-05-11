@@ -2,10 +2,14 @@
 #define SPRITE_H
 
 #include "math.h"
+#include "raylib.h"
 #include <math.h>
-#include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#define TARGET_FPS 60
+
+typedef enum State { IDLE = 0, MOVING, DASHING, JUMPING } State;
 
 typedef struct {
   Rectangle destination;
@@ -17,8 +21,10 @@ typedef struct {
   Vector2 acceleration;
   Vector2 deceleration;
   double jump_speed;
+  int dash_speed;
   int collisionType[4];
   int facingRight;
+  State state;
 } Sprite;
 
 static Sprite CreateSprite(Rectangle destination, Rectangle source,
@@ -32,6 +38,7 @@ static Sprite CreateSprite(Rectangle destination, Rectangle source,
   sprite.destination = destination;
   sprite.source = source;
   sprite.collision = collision;
+  sprite.dash_speed = 8;
   sprite.maxVelocity = maxVelocity;
   sprite.velocity = (Vector2){0, 0};
   sprite.acceleration = acceleration;
@@ -61,9 +68,8 @@ static void Accelerate(Sprite *sprite, Vector2 direction) {
   Vector2 maxVelocity = sprite->maxVelocity;
   Vector2 acceleration = sprite->acceleration;
 
-  sprite->velocity.x += acceleration.x * direction.x;
-  if (abs(sprite->velocity.x) > abs(maxVelocity.x))
-    sprite->velocity.x = maxVelocity.x * direction.x;
+  if (abs(sprite->velocity.x + acceleration.x * direction.x) <= maxVelocity.x)
+    sprite->velocity.x += acceleration.x * direction.x;
 
   // deals with y direction
   sprite->velocity.y += acceleration.y * direction.y;
@@ -75,6 +81,18 @@ static void Accelerate(Sprite *sprite, Vector2 direction) {
 static void MoveSprite(Sprite *sprite, Rectangle collisionObject[],
                        int collisionObjectLength) {
 
+  // handle state here
+  if (sprite->state == DASHING) {
+    sprite->velocity.y = 0;
+    if (sprite->collisionType[0] || sprite->collisionType[1]) {
+      sprite->state = MOVING;
+    }
+  }
+
+  if (sprite->velocity.x <= sprite->maxVelocity.x)
+    sprite->state = MOVING;
+
+  // handle collisions here
   for (int i = 0; i < 4; i++)
     sprite->collisionType[i] = 0;
   // first move x axis
@@ -102,6 +120,12 @@ static void MoveSprite(Sprite *sprite, Rectangle collisionObject[],
   }
   // then y axis
   sprite->destination.y += sprite->velocity.y;
+  if (sprite->collisionType[0] || sprite->collisionType[1]) {
+    sprite->velocity.x = 0;
+    if (!sprite->collisionType[2] &&
+        sprite->velocity.y > sprite->maxVelocity.y / 100)
+      sprite->velocity.y = sprite->maxVelocity.y / 100;
+  }
   for (int i = 0; i < collisionObjectLength; i++) {
     Rectangle collisonRect = {sprite->destination.x + sprite->collision.x,
                               sprite->destination.y + sprite->collision.y,
@@ -120,6 +144,8 @@ static void MoveSprite(Sprite *sprite, Rectangle collisionObject[],
       }
     }
   }
+
+  // reset velocity if hitting a wall
 }
 
 static void Decelerate(Sprite *sprite, Vector2 axis) {
@@ -142,26 +168,63 @@ static void Decelerate(Sprite *sprite, Vector2 axis) {
 
 static void Jump(Sprite *sprite) { sprite->velocity.y = -sprite->jump_speed; }
 
+static double Dash(Sprite *sprite) {
+  if (sprite->facingRight)
+    sprite->velocity.x = sprite->dash_speed;
+  else
+    sprite->velocity.x = -sprite->dash_speed;
+
+  return GetTime();
+}
+
 static void HandleSpriteInput(Sprite *sprite) {
   Vector2 noInput = {1, 1};
-  if (IsKeyDown(KEY_SPACE) && sprite->collisionType[3]) {
-    // Accelerate(sprite, (Vector2){0, -1});
+  // dash timer setup
+  static double *lastDashTime = NULL;
+  double timeSinceLastDash = 0;
+  if (lastDashTime == NULL)
+    lastDashTime = (double *)malloc(sizeof(double));
+  else
+    timeSinceLastDash = GetTime() - *lastDashTime;
+
+  // jump timer setup
+  static double *lastJumpTime = NULL;
+  double timeSinceLastJump = 0;
+  if (lastJumpTime == NULL)
+    lastJumpTime = (double *)malloc(sizeof(double));
+  else
+    timeSinceLastJump = GetTime() - *lastJumpTime;
+
+  // jump
+  if (IsKeyDown(KEY_SPACE) && sprite->collisionType[3] &&
+      timeSinceLastJump >= 1 &&
+      (sprite->collisionType[3] ||
+       (sprite->collisionType[0] && sprite->facingRight) ||
+       (sprite->collisionType[1] && !sprite->facingRight))) {
     Jump(sprite);
+    sprite->state = JUMPING;
   }
   if (IsKeyDown(KEY_S)) {
-    // Accelerate(sprite, (Vector2){0, 1});
-    // noInput.y = 0;
   }
+  // dash
+  if (IsKeyDown(KEY_LEFT_SHIFT) && timeSinceLastDash >= 1 && sprite->state != DASHING) {
+    *lastDashTime = Dash(sprite);
+    sprite->state = DASHING;
+  }
+  // move left
   if (IsKeyDown(KEY_A)) {
     Accelerate(sprite, (Vector2){-1, 0});
     noInput.x = 0;
   }
+  // move right
   if (IsKeyDown(KEY_D)) {
     Accelerate(sprite, (Vector2){1, 0});
     noInput.x = 0;
   }
   Decelerate(sprite, noInput);
   Accelerate(sprite, (Vector2){0, 1});
+  if (sprite->state != DASHING && sprite->velocity.x > sprite->maxVelocity.x)
+    sprite->velocity.x = sprite->maxVelocity.x;
 }
 
 static void FollowSprite(Sprite sprite, Camera2D *camera, double zoom,
@@ -202,7 +265,6 @@ static void FollowSprite(Sprite sprite, Camera2D *camera, double zoom,
 static void UpdatePlayerSprite(Sprite *sprite, Rectangle collisionObject[],
                                int collisionObjectLength) {
   HandleSpriteInput(sprite);
-  // left right top bottom
   MoveSprite(sprite, collisionObject, collisionObjectLength);
 }
 
